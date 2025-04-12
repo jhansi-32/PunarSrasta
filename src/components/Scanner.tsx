@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 
 interface ScannerProps {
   type: "domestic" | "plastic";
@@ -13,6 +15,7 @@ const Scanner = ({ type }: ScannerProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [scanResult, setScanResult] = useState<null | {
     recyclable: boolean;
     type?: string;
@@ -80,6 +83,65 @@ const Scanner = ({ type }: ScannerProps) => {
     }
   };
 
+  const uploadImageToSupabase = async (file: File): Promise<string | null> => {
+    try {
+      setIsUploading(true);
+      
+      // Create a unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${uuidv4()}.${fileExt}`;
+      const filePath = `${type}/${fileName}`;
+      
+      // Upload file to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('waste_images')
+        .upload(filePath, file);
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Get public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('waste_images')
+        .getPublicUrl(filePath);
+        
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your image",
+        variant: "destructive"
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const saveScanResult = async (imagePath: string, result: any) => {
+    try {
+      // Save the scan result to Supabase
+      const { error } = await supabase
+        .from('waste_items')
+        .insert({
+          name: type === 'domestic' ? result.type : `${result.type} Container`,
+          type: type,
+          recyclable: result.recyclable,
+          image_path: imagePath
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      console.log('Scan result saved successfully');
+    } catch (error) {
+      console.error('Error saving scan result:', error);
+    }
+  };
+
   const scanImage = async () => {
     if (!selectedFile) {
       toast({
@@ -92,16 +154,40 @@ const Scanner = ({ type }: ScannerProps) => {
 
     setIsScanning(true);
     
-    // Simulate API call with timeout
-    setTimeout(() => {
-      // For demo, randomly select a result based on the scanner type
-      if (type === "domestic") {
-        setScanResult(mockDomesticResults[Math.floor(Math.random() * mockDomesticResults.length)]);
-      } else {
-        setScanResult(mockPlasticResults[Math.floor(Math.random() * mockPlasticResults.length)]);
+    try {
+      // Upload image to Supabase
+      const imagePath = await uploadImageToSupabase(selectedFile);
+      
+      if (!imagePath) {
+        throw new Error('Failed to upload image');
       }
+      
+      // Simulate AI scan with timeout
+      setTimeout(async () => {
+        // For demo, randomly select a result based on the scanner type
+        let result;
+        if (type === "domestic") {
+          result = mockDomesticResults[Math.floor(Math.random() * mockDomesticResults.length)];
+        } else {
+          result = mockPlasticResults[Math.floor(Math.random() * mockPlasticResults.length)];
+        }
+        
+        setScanResult(result);
+        
+        // Save scan result to Supabase
+        await saveScanResult(imagePath, result);
+        
+        setIsScanning(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Scan failed:', error);
+      toast({
+        title: "Scan failed",
+        description: "There was an error scanning your image",
+        variant: "destructive"
+      });
       setIsScanning(false);
-    }, 2000);
+    }
   };
 
   const captureImage = () => {
@@ -182,13 +268,13 @@ const Scanner = ({ type }: ScannerProps) => {
           {previewUrl && !scanResult && (
             <Button 
               onClick={scanImage} 
-              disabled={isScanning}
+              disabled={isScanning || isUploading}
               className="bg-ps-green hover:bg-ps-green-dark"
             >
-              {isScanning ? (
+              {isScanning || isUploading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Scanning...
+                  {isUploading ? "Uploading..." : "Scanning..."}
                 </>
               ) : (
                 "Scan Image"

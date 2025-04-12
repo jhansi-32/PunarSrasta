@@ -9,7 +9,120 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      craft_ideas: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          image_path: string | null
+          plastic_type: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          image_path?: string | null
+          plastic_type?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          image_path?: string | null
+          plastic_type?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      dry_leaves_submissions: {
+        Row: {
+          collect_manure: boolean
+          contact_email: string | null
+          created_at: string | null
+          id: string
+          leaf_type: string
+          location: string
+          quantity: string
+          status: string | null
+        }
+        Insert: {
+          collect_manure: boolean
+          contact_email?: string | null
+          created_at?: string | null
+          id?: string
+          leaf_type: string
+          location: string
+          quantity: string
+          status?: string | null
+        }
+        Update: {
+          collect_manure?: boolean
+          contact_email?: string | null
+          created_at?: string | null
+          id?: string
+          leaf_type?: string
+          location?: string
+          quantity?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
+      recycling_methods: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          is_recyclable: boolean
+          title: string
+          waste_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          is_recyclable?: boolean
+          title: string
+          waste_type: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          is_recyclable?: boolean
+          title?: string
+          waste_type?: string
+        }
+        Relationships: []
+      }
+      waste_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_path: string | null
+          name: string
+          recyclable: boolean | null
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_path?: string | null
+          name: string
+          recyclable?: boolean | null
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_path?: string | null
+          name?: string
+          recyclable?: boolean | null
+          type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

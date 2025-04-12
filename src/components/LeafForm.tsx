@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Leaf, MapPin, Ruler, Truck, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const LeafForm = () => {
   const { toast } = useToast();
@@ -20,6 +21,7 @@ const LeafForm = () => {
     collectManure: "",
     name: "",
     phone: "",
+    email: "",
     additionalInfo: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,7 +85,7 @@ const LeafForm = () => {
     setFormStep(prev => prev - 1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate final step
@@ -98,13 +100,30 @@ const LeafForm = () => {
     
     setIsSubmitting(true);
     
-    // Simulate form submission
-    setTimeout(() => {
+    try {
+      // Determine actual leaf type (handle custom input)
+      const leafType = formData.leafType === "other" ? formData.customLeafType : formData.leafType;
+      
+      // Save form data to Supabase
+      const { error } = await supabase
+        .from('dry_leaves_submissions')
+        .insert({
+          leaf_type: leafType,
+          location: formData.location,
+          quantity: formData.amount,
+          collect_manure: formData.collectManure === "yes",
+          contact_email: formData.email || null
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
       toast({
         title: "Request submitted successfully!",
         description: "A collection team will contact you soon to arrange pickup."
       });
-      setIsSubmitting(false);
+      
       // Reset form data and go back to step 0
       setFormData({
         leafType: "",
@@ -114,10 +133,20 @@ const LeafForm = () => {
         collectManure: "",
         name: "",
         phone: "",
+        email: "",
         additionalInfo: ""
       });
       setFormStep(0);
-    }, 1500);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast({
+        title: "Submission failed",
+        description: "There was an error submitting your request. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Step indicators with icons
@@ -297,6 +326,17 @@ const LeafForm = () => {
                 onChange={(e) => updateFormData("phone", e.target.value)}
                 placeholder="Enter your phone number"
                 required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => updateFormData("email", e.target.value)}
+                placeholder="Enter your email address"
               />
             </div>
             
