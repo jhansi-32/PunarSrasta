@@ -69,6 +69,42 @@ export type Database = {
         }
         Relationships: []
       }
+      nurseries: {
+        Row: {
+          address: string
+          created_at: string
+          email: string | null
+          id: string
+          latitude: number
+          longitude: number
+          name: string
+          phone: string | null
+          website: string | null
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          latitude: number
+          longitude: number
+          name: string
+          phone?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          phone?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       recycling_methods: {
         Row: {
           created_at: string | null

@@ -1,5 +1,4 @@
-
-import { Camera, FileImage, Loader2 } from "lucide-react";
+import { Camera, FileImage, Loader2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,13 +15,13 @@ const Scanner = ({ type }: ScannerProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<null | {
     recyclable: boolean;
     type?: string;
     suggestions?: string[];
   }>(null);
 
-  // Mock scan results for demo purposes
   const mockDomesticResults = [
     {
       recyclable: true,
@@ -69,17 +68,37 @@ const Scanner = ({ type }: ScannerProps) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setSelectedFile(file);
       
-      // Create a preview URL
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      if (!validTypes.includes(file.type)) {
+        toast({
+          title: "Invalid File Type",
+          description: "Please upload a JPEG, PNG, or WebP image.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (file.size > maxSize) {
+        toast({
+          title: "File Too Large",
+          description: "Image must be less than 5MB.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setSelectedFile(file);
+      setScanError(null);
+      setScanResult(null);
+      
       const fileReader = new FileReader();
       fileReader.onload = () => {
         setPreviewUrl(fileReader.result as string);
       };
       fileReader.readAsDataURL(file);
-      
-      // Reset scan result when new file is selected
-      setScanResult(null);
     }
   };
 
@@ -87,12 +106,10 @@ const Scanner = ({ type }: ScannerProps) => {
     try {
       setIsUploading(true);
       
-      // Create a unique file name
       const fileExt = file.name.split('.').pop();
       const fileName = `${uuidv4()}.${fileExt}`;
       const filePath = `${type}/${fileName}`;
       
-      // Upload file to Supabase storage
       const { data, error } = await supabase.storage
         .from('waste_images')
         .upload(filePath, file);
@@ -101,7 +118,6 @@ const Scanner = ({ type }: ScannerProps) => {
         throw error;
       }
       
-      // Get public URL for the uploaded file
       const { data: { publicUrl } } = supabase.storage
         .from('waste_images')
         .getPublicUrl(filePath);
@@ -110,10 +126,11 @@ const Scanner = ({ type }: ScannerProps) => {
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({
-        title: "Upload failed",
-        description: "There was an error uploading your image",
+        title: "Upload Failed",
+        description: "There was an error uploading your image.",
         variant: "destructive"
       });
+      setScanError("Image upload failed");
       return null;
     } finally {
       setIsUploading(false);
@@ -122,7 +139,6 @@ const Scanner = ({ type }: ScannerProps) => {
 
   const saveScanResult = async (imagePath: string, result: any) => {
     try {
-      // Save the scan result to Supabase
       const { error } = await supabase
         .from('waste_items')
         .insert({
@@ -145,53 +161,54 @@ const Scanner = ({ type }: ScannerProps) => {
   const scanImage = async () => {
     if (!selectedFile) {
       toast({
-        title: "No image selected",
-        description: "Please select an image to scan",
+        title: "No Image Selected",
+        description: "Please select an image to scan.",
         variant: "destructive"
       });
       return;
     }
 
     setIsScanning(true);
+    setScanError(null);
+    setScanResult(null);
     
     try {
-      // Upload image to Supabase
       const imagePath = await uploadImageToSupabase(selectedFile);
       
       if (!imagePath) {
         throw new Error('Failed to upload image');
       }
       
-      // Simulate AI scan with timeout
       setTimeout(async () => {
-        // For demo, randomly select a result based on the scanner type
         let result;
         if (type === "domestic") {
-          result = mockDomesticResults[Math.floor(Math.random() * mockDomesticResults.length)];
+          result = Math.random() > 0.2 
+            ? mockDomesticResults[Math.floor(Math.random() * mockDomesticResults.length)]
+            : null;
         } else {
-          result = mockPlasticResults[Math.floor(Math.random() * mockPlasticResults.length)];
+          result = Math.random() > 0.2 
+            ? mockPlasticResults[Math.floor(Math.random() * mockPlasticResults.length)]
+            : null;
         }
         
-        setScanResult(result);
-        
-        // Save scan result to Supabase
-        await saveScanResult(imagePath, result);
+        if (!result) {
+          setScanError("Unable to classify the image. Please try a different image.");
+          setScanResult(null);
+        } else {
+          setScanResult(result);
+          await saveScanResult(imagePath, result);
+        }
         
         setIsScanning(false);
       }, 2000);
     } catch (error) {
       console.error('Scan failed:', error);
-      toast({
-        title: "Scan failed",
-        description: "There was an error scanning your image",
-        variant: "destructive"
-      });
+      setScanError("Scan failed. Please try again.");
       setIsScanning(false);
     }
   };
 
   const captureImage = () => {
-    // This would trigger the device camera in a real implementation
     toast({
       title: "Camera functionality",
       description: "This feature would open your device camera in a real implementation",
@@ -227,6 +244,7 @@ const Scanner = ({ type }: ScannerProps) => {
                   setSelectedFile(null);
                   setPreviewUrl(null);
                   setScanResult(null);
+                  setScanError(null);
                 }}
               >
                 Change
@@ -284,6 +302,15 @@ const Scanner = ({ type }: ScannerProps) => {
         </div>
       </div>
       
+      {scanError && (
+        <div className="mt-6 border-t border-ps-green/20 pt-6 animate-fade-in text-center text-destructive">
+          <div className="flex items-center justify-center gap-2 text-orange-600">
+            <XCircle className="w-6 h-6" />
+            <p className="text-sm">{scanError}</p>
+          </div>
+        </div>
+      )}
+
       {scanResult && (
         <div className="mt-6 border-t border-ps-green/20 pt-6 animate-fade-in">
           <h4 className="text-lg font-medium mb-3 flex items-center gap-2">
