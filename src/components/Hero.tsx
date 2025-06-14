@@ -36,7 +36,12 @@ const Hero = () => {
           <div className="md:w-1/2 flex justify-center md:justify-end">
             <div className="relative">
               <div className="w-64 h-64 md:w-80 md:h-80 bg-ps-green/20 rounded-full flex items-center justify-center">
-                <RecycleIcon className="w-32 h-32 md:w-40 md:h-40 text-ps-green animate-pulse" />
+              <img 
+            src="/punar.webp" 
+            alt="PunarSrasta Logo" 
+           className="w-56 h-66 md:w-72 md:h-82 animate-pulse object-contain"
+          />
+
               </div>
               <div className="absolute top-0 right-0 w-24 h-24 bg-ps-brown/20 rounded-full" />
               <div className="absolute bottom-8 -left-8 w-16 h-16 bg-ps-brown-light/30 rounded-full" />

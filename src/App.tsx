@@ -11,6 +11,7 @@ import PlasticWaste from "./pages/PlasticWaste";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (

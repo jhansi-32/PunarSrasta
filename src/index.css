@@ -63,4 +63,12 @@
   .benefit-icon {
     @apply text-ps-green-dark shrink-0 mt-1;
   }
+  body {
+    margin: 0;
+    font-family: sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #279e57; /* Dark green background */
+    color: rgb(19, 17, 17); /* Optional: change default text color for contrast */
+  }
 }
